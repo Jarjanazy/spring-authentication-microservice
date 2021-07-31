@@ -42,11 +42,11 @@ public class AuthenticationController {
     private ResponseEntity<AuthenticationResponse> createAuthToken(AuthenticationRequest authenticationRequest) {
         UserDetails userDetails =  customUserDetailService.loadUserByUsername(authenticationRequest.getUserName());
 
+        String jwt = jwtService.generateToken(userDetails);
+
         SystemUser user = userRepo.
                 findByUserName(userDetails.getUsername()).
                 orElseThrow(() -> new RuntimeException(""));
-
-        String jwt = jwtService.generateToken(userDetails);
 
         return ResponseEntity.ok(new AuthenticationResponse(jwt, user.getUserName()));
     }
