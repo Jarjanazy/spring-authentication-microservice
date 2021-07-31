@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,13 +43,14 @@ public class AuthenticationController {
     private ResponseEntity<AuthenticationResponse> createAuthToken(AuthenticationRequest authenticationRequest) {
         UserDetails userDetails =  customUserDetailService.loadUserByUsername(authenticationRequest.getUserName());
 
-        String jwt = jwtService.generateToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails, Optional.of(1000 * 60 * 15));
+        String refreshToken = jwtService.generateToken(userDetails, Optional.empty());
 
         SystemUser user = userRepo.
                 findByUserName(userDetails.getUsername()).
                 orElseThrow(() -> new RuntimeException(""));
 
-        return ResponseEntity.ok(new AuthenticationResponse(jwt, user.getUserName()));
+        return ResponseEntity.ok(new AuthenticationResponse(refreshToken, accessToken, user.getUserName()));
     }
     // if this method runs successfully it means that authentication done successfully
     private void verifyAuthenticationRequest(AuthenticationRequest ar) {
