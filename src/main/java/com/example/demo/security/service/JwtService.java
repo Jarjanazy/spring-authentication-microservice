@@ -1,70 +1,63 @@
 package com.example.demo.security.service;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
-@Service
+@Service @Slf4j
 public class JwtService {
 
     private final String SECRET_KEY = "secret";
+    private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY.getBytes());
+    private final JWTVerifier verifier = JWT.require(algorithm).build();
+
 
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
-
-    public Optional<Date> extractExpiration(String token) {
-        return Optional.ofNullable(extractClaim(token, Claims::getExpiration));
-    }
-
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+        return verifier.verify(token).getSubject();
     }
 
     public String createToken(String userName, Optional<Integer> expirationDuration) {
+
         if (expirationDuration.isPresent())
             return createTokenWithNoExpirationDate(userName)
-                    .setExpiration(new Date(System.currentTimeMillis() + expirationDuration.get()))
-                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
-                    .compact();
+                    .withExpiresAt(new Date(System.currentTimeMillis() + expirationDuration.get()))
+                    .sign(algorithm);
         else
             return createTokenWithNoExpirationDate(userName)
-                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
-                    .compact();
+                    .sign(algorithm);
     }
 
-    public Boolean tokenIsValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    public Boolean tokenIsValid(String token) {
+        try{
+            verifier.verify(token);
+            return true;
+        }catch (SignatureVerificationException e){
+            log.error("The jwt is invalid "+ token);
+            return false;
+        }
+        catch (TokenExpiredException e){
+            log.error("The jwt has expired "+ token);
+            return false;
+        }catch (Exception e){
+            log.error("An unknown error has happened with the jwt "+ token);
+            return false;
+        }
     }
 
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
-    }
 
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token)
-                .map(date -> date.before(new Date()))
-                .orElse(false);
-    }
 
-    private JwtBuilder createTokenWithNoExpirationDate(String userName)
+    private JWTCreator.Builder createTokenWithNoExpirationDate(String userName)
     {
-        // if we want to add data to the JWT, we add it here
-        Map<String, Object> claims = new HashMap<>();
-        return Jwts
-                .builder()
-                .setClaims(claims)
-                .setSubject(userName)
-                .setIssuedAt(new Date(System.currentTimeMillis()));
+        return JWT
+            .create()
+            .withSubject(userName)
+            .withIssuedAt(new Date(System.currentTimeMillis()));
     }
 }

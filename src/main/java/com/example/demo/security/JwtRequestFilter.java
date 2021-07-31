@@ -44,7 +44,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         UserDetails userDetails = this.customUserDetailsService.loadUserByUsername(username);
 
-        if (jwtService.tokenIsValid(jwt, userDetails))
+        if (jwtService.tokenIsValid(jwt))
             setAuthenticationInSecurityContext(request, userDetails);
     }
 
