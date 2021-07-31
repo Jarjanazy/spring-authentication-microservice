@@ -43,8 +43,8 @@ public class AuthenticationController {
     private ResponseEntity<AuthenticationResponse> createAuthToken(AuthenticationRequest authenticationRequest) {
         UserDetails userDetails =  customUserDetailService.loadUserByUsername(authenticationRequest.getUserName());
 
-        String accessToken = jwtService.generateToken(userDetails, Optional.of(1000 * 60 * 15));
-        String refreshToken = jwtService.generateToken(userDetails, Optional.empty());
+        String accessToken = jwtService.createToken(userDetails.getUsername(), Optional.of(1000 * 60 * 15));
+        String refreshToken = jwtService.createToken(userDetails.getUsername(), Optional.empty());
 
         SystemUser user = userRepo.
                 findByUserName(userDetails.getUsername()).

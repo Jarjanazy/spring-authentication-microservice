@@ -30,9 +30,16 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(UserDetails userDetails, Optional<Integer> expirationDuration) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, userDetails.getUsername(), expirationDuration);
+    public String createToken(String userName, Optional<Integer> expirationDuration) {
+        if (expirationDuration.isPresent())
+            return createTokenWithNoExpirationDate(userName)
+                    .setExpiration(new Date(System.currentTimeMillis() + expirationDuration.get()))
+                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                    .compact();
+        else
+            return createTokenWithNoExpirationDate(userName)
+                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                    .compact();
     }
 
     public Boolean tokenIsValid(String token, UserDetails userDetails) {
@@ -50,22 +57,14 @@ public class JwtService {
                 .orElse(false);
     }
 
-    private String createToken(Map<String, Object> claims, String subject, Optional<Integer> expirationDuration) {
-        if (expirationDuration.isPresent())
-            return createTokenWithNoExpirationDate(claims, subject)
-                    .setExpiration(new Date(System.currentTimeMillis() + expirationDuration.get()))
-                    .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
-        else
-            return createTokenWithNoExpirationDate(claims, subject)
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY).compact();
-    }
-
-    private JwtBuilder createTokenWithNoExpirationDate(Map<String, Object> claims, String subject)
+    private JwtBuilder createTokenWithNoExpirationDate(String userName)
     {
+        // if we want to add data to the JWT, we add it here
+        Map<String, Object> claims = new HashMap<>();
         return Jwts
                 .builder()
                 .setClaims(claims)
-                .setSubject(subject)
+                .setSubject(userName)
                 .setIssuedAt(new Date(System.currentTimeMillis()));
     }
 }
