@@ -1,9 +1,11 @@
 package com.example.demo.security;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.example.demo.security.service.CustomUserDetailService;
 import com.example.demo.security.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Component @Slf4j
@@ -27,24 +30,29 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        setAuthenticationBasedOnJWT(request);
+        try{
+            setAuthenticationBasedOnJWT(request);
 
-        chain.doFilter(request, response);
+            chain.doFilter(request, response);
+
+        }catch (TokenExpiredException e){
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.getWriter().write("The access token has expired");
+        }
     }
 
     private void setAuthenticationBasedOnJWT(HttpServletRequest request)
     {
-        final String authorizationHeader = request.getHeader("Authorization");
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer "))
+        Optional<String> jwt = jwtService.extractJWTFromAuthorizationHeader(request);
+
+        if (jwt.isEmpty())
             return;
 
-        String jwt = authorizationHeader.substring(7);
-
-        String username = jwtService.extractUsername(jwt);
+        String username = jwtService.extractUsername(jwt.get());
 
         UserDetails userDetails = this.customUserDetailsService.loadUserByUsername(username);
 
-        if (jwtService.tokenIsValid(jwt))
+        if (jwtService.tokenIsValid(jwt.get()))
             setAuthenticationInSecurityContext(request, userDetails);
     }
 

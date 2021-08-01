@@ -5,9 +5,10 @@ import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
-import com.auth0.jwt.exceptions.TokenExpiredException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.Optional;
 
@@ -42,16 +43,15 @@ public class JwtService {
             log.error("The jwt is invalid "+ token);
             return false;
         }
-        catch (TokenExpiredException e){
-            log.error("The jwt has expired "+ token);
-            return false;
-        }catch (Exception e){
-            log.error("An unknown error has happened with the jwt "+ token);
-            return false;
-        }
     }
 
+    public Optional<String> extractJWTFromAuthorizationHeader(HttpServletRequest servletRequest){
+        final String authorizationHeader = servletRequest.getHeader("Authorization");
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer "))
+            return Optional.empty();
 
+        return Optional.of(authorizationHeader.substring(7));
+    }
 
     private JWTCreator.Builder createTokenWithNoExpirationDate(String userName)
     {

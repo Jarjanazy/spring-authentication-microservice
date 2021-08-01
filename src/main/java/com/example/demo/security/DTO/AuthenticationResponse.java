@@ -13,4 +13,9 @@ public class AuthenticationResponse implements Serializable {
     private String refreshToken;
     private String accessToken;
     private String userName;
+
+    public AuthenticationResponse(String accessToken)
+    {
+        this.accessToken = accessToken;
+    }
 }
