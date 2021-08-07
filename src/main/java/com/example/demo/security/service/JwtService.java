@@ -5,20 +5,33 @@ import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
+import java.security.KeyPair;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
 
-@Service @Slf4j
+@Service
+@Slf4j
 public class JwtService {
 
-    private final String SECRET_KEY = "secret";
-    private final Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY.getBytes());
-    private final JWTVerifier verifier = JWT.require(algorithm).build();
+    private final Algorithm signingAlgorithm;
+    private final JWTVerifier verifier;
+    private final KeyPair keyPair;
 
+    public JwtService(KeyPair keyPair)
+    {
+        this.keyPair = keyPair;
+        this.signingAlgorithm = Algorithm.RSA256(null, (RSAPrivateKey) keyPair.getPrivate());
+        Algorithm verifyingAlgorithm = Algorithm.RSA256((RSAPublicKey) keyPair.getPublic(), null);
+        this.verifier = JWT.require(verifyingAlgorithm).build();
+    }
 
     public String extractUsername(String token) {
         return verifier.verify(token).getSubject();
@@ -29,19 +42,18 @@ public class JwtService {
         if (expirationDuration.isPresent())
             return createTokenWithNoExpirationDate(userName)
                     .withExpiresAt(new Date(System.currentTimeMillis() + expirationDuration.get()))
-                    .sign(algorithm);
+                    .sign(signingAlgorithm);
         else
             return createTokenWithNoExpirationDate(userName)
-                    .sign(algorithm);
+                    .sign(signingAlgorithm);
     }
 
-    public Boolean tokenIsValid(String token) {
+    public Optional<DecodedJWT> tokenIsValid(String token) {
         try{
-            verifier.verify(token);
-            return true;
+            return Optional.of(verifier.verify(token));
         }catch (SignatureVerificationException e){
             log.error("The jwt is invalid "+ token);
-            return false;
+            return Optional.empty();
         }
     }
 
@@ -58,6 +70,13 @@ public class JwtService {
         return JWT
             .create()
             .withSubject(userName)
-            .withIssuedAt(new Date(System.currentTimeMillis()));
+            .withIssuedAt(new Date(System.currentTimeMillis()))
+            .withClaim("publicKey", getPublicKeyAsString());
+    }
+
+    private String getPublicKeyAsString(){
+        return Base64
+                .getEncoder()
+                .encodeToString(keyPair.getPublic().getEncoded());
     }
 }

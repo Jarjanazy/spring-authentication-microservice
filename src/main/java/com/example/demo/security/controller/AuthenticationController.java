@@ -49,7 +49,7 @@ public class AuthenticationController {
             return ResponseEntity.badRequest().body("The refresh token doesn't exist");
 
         String refreshToken = refreshTokenOptional.get();
-        if (jwtService.tokenIsValid(refreshToken)){
+        if (jwtService.tokenIsValid(refreshToken).isPresent()){
             return authenticationService.createAccessTokenFromRefreshToken(refreshToken);
         }
         else
