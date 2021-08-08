@@ -15,7 +15,7 @@ public class AppPublicKey
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Integer id;
 
-    @Column(nullable = false, name = "public_key")
+    @Column(nullable = false, name = "public_key", length = 1_000)
     private String publicKey;
 
     @Column(nullable = false, name = "creation_date")

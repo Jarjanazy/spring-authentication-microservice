@@ -52,6 +52,10 @@ public class AuthenticationController {
 
     @GetMapping("/publicKey")
     public ResponseEntity<?> getPublicKey(){
-        return ResponseEntity.ok(publicKeyService.getPublicKey());
+        try{
+            return ResponseEntity.ok(publicKeyService.getPublicKey());
+        }catch (RuntimeException e){
+            return ResponseEntity.ok("No public key is present");
+        }
     }
 }
