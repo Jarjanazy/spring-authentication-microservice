@@ -4,6 +4,7 @@ package com.example.demo.security.controller;
 import com.example.demo.security.DTO.AuthenticationRequest;
 import com.example.demo.security.service.AuthenticationService;
 import com.example.demo.security.service.JwtService;
+import com.example.demo.security.service.PublicKeyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.Optional;
 public class AuthenticationController {
     private final JwtService jwtService;
     private final AuthenticationService authenticationService;
+    private final PublicKeyService publicKeyService;
 
     @PostMapping("/authenticate")
     public ResponseEntity<?> verifyAndCreateAuthToken(@RequestBody AuthenticationRequest authenticationRequest){
@@ -46,5 +48,10 @@ public class AuthenticationController {
         }
         else
             return ResponseEntity.badRequest().body("The refresh token is invalid");
+    }
+
+    @GetMapping("/publicKey")
+    public ResponseEntity<?> getPublicKey(){
+        return ResponseEntity.ok(publicKeyService.getPublicKey());
     }
 }
